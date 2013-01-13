@@ -1,57 +1,65 @@
 #!/usr/bin/env python
 #encoding:utf-8
 
-# MainFrame 
-
 import wx
+import socket
+import re
+import login
+import mainframe
 
-class ChessPanel(wx.Panel):
-    """Draw the chess board."""
-    def __init__(self,parent):
-        wx.Panel.__init__(self,parent,size=(425,425),name="ChessPanel")
-
-        # Draw the chess board.
-        bmp = wx.Image(r'resource/flying_chess.jpg',wx.BITMAP_TYPE_ANY)
-        bmp = bmp.Scale(bmp.GetWidth()/2,bmp.GetHeight()/2,wx.IMAGE_QUALITY_HIGH)
-        bitmap = wx.StaticBitmap(self,-1,wx.BitmapFromImage(bmp))
-
-
-
-class MainFrame(wx.Frame):
+class Flying():
     def __init__(self):
-        """MainFrame initial"""
-        wx.Frame.__init__(self,None,title="大蟒蛇飞行棋",style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN,size=(600,425))
-        self.__InitUI()
-        self.__EVT_Bind()
-        self.Show(True)
+        """初始化"""
+        self.name = None
+        ip = None
+        ok = False
+        while not ok:
+            logininfo = login.LoginDialog(self.name,ip)
+            result = logininfo.ShowModal()
+            logininfo.Destroy()
+            self.name,ip = logininfo.GetData()
+            name_backup = self.name
+            if result == wx.ID_OK:
+                if self.HandleInfo(ip):
+                    self.InitSocket(ip)
+                    ok = True
+                else:
+                    errorDlg = wx.MessageBox('名字过长或IP地址格式错误','Error',wx.OK | wx.ICON_INFORMATION)
+            if not self.HandleName():
+                ok = False
+                errorDlg = wx.MessageBox('名字已被使用','Error',wx.OK | wx.ICON_INFORMATION)
+                self.name = name_backup
+        frame = mainframe.MainFrame(self.socket)
+
+    def HandleName(self):
+        """检查名字是否可用"""
+        self.socket.send('01'+self.name+'_99')    # 向服务器发送名字
+        result = self.socket.recv(1024)
+        if result == '51_99':    # '10'代表名字已经被使用
+            return False
+        else:
+            return True
+
+    def InitSocket(self,ip):
+        """初始化socket"""
+        self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.socket.connect((ip,19000))
+
+    def HandleInfo(self,ip):
+        """检查ip地址是否正确,名字是否超出长度"""
+        # 检查名字是否超出长度
+        length = len(self.name)
+        if length > 16:
+            return False
+        # 检查ip地址是否正确
+        pattern = r'((2[0-4]\d|25[0-5]|[01]?\d\d?)\.){3}(2[0-4]\d|25[0-5]|[01]?\d\d?)'
+        if not re.match(pattern,ip):
+            return False
+        else:
+            return True
 
 
-    def __InitUI(self):
-        """Initialize UI"""
-
-        ChessPanel(self)
-        # Draw chess board
-#        image_file = r'resource/flying_chess.jpg'
-#        bmp = wx.Image(image_file,wx.BITMAP_TYPE_ANY)
-#        bmp = bmp.Scale(bmp.GetWidth()/2,bmp.GetHeight()/2,wx.IMAGE_QUALITY_HIGH)
-#        bitmap = wx.StaticBitmap(self,-1,wx.BitmapFromImage(bmp))
-
-        # Infomation box
-        info_text = wx.TextCtrl(self,pos=(435,10),size=(150,100),style=wx.TE_MULTILINE | wx.TE_READONLY)
-
-        # Button
-        self.start_button = wx.Button(self,-1,label="开始游戏",pos=(435,120))
-
-        # Chess picture
-        red_bmp = wx.Image(r'resource/red.gif',wx.BITMAP_TYPE_ANY)
-        red_bmp = red_bmp.Scale(red_bmp.GetWidth()/2,red_bmp.GetHeight()/2,wx.IMAGE_QUALITY_HIGH)
-        red_bitmap = wx.StaticBitmap(self,-1,wx.BitmapFromImage(red_bmp),pos=(124,20))
-
-    def __EVT_Bind(self):
-        pass
-
-if __name__ == "__main__":
-    """run the python program."""
+if __name__ == '__main__':
     app = wx.App()
-    frame = MainFrame()
+    Flying()
     app.MainLoop()

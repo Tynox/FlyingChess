@@ -1,1 +1,11 @@
-这是一个由Python初学者编写的、简单的、还未完成的Python飞行棋游戏。
+这是一个由Python初学者编写的飞行棋游戏。基本可以无错运行（可能存在一些BUG）。
+运行环境：Python 2.7
+        wxPython 2.8
+	Twisted 12.3
+	zope interface（Windows需要自己安装。Fedora Linux发行版已经集成。其他飞行版未测试）
+
+运行方法：python server/server.py
+	  python client/flying.py
+	  四个客户端可开始一组游戏
+
+注：测试环境为Fedora Linux 17，未在Windows下测试。由于wxPython在Windows下的中文支持编写者并未搞清楚，所以该程序在Windows下可能无法运行。
